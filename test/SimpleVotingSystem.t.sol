@@ -17,7 +17,7 @@ contract SimpleVotingSystemTest is Test {
         // On déploie en tant qu'admin
         vm.startPrank(admin);
         votingSystem = new SimpleVotingSystem();
-        
+
         // Attribution des rôles
         votingSystem.grantRole(votingSystem.FOUNDER_ROLE(), founder);
         votingSystem.grantRole(votingSystem.WITHDRAWER_ROLE(), withdrawer);
@@ -35,7 +35,7 @@ contract SimpleVotingSystemTest is Test {
         vm.startPrank(admin);
         votingSystem.addCandidate("Alice");
         votingSystem.addCandidate("Bob");
-        
+
         // Changement de statut vers FOUND_CANDIDATES
         votingSystem.setWorkflowStatus(SimpleVotingSystem.WorkflowStatus.FOUND_CANDIDATES);
         vm.stopPrank();
@@ -44,7 +44,7 @@ contract SimpleVotingSystemTest is Test {
         vm.startPrank(founder);
         votingSystem.fundCandidate{value: 5 ether}(1); // 5 ETH pour Alice
         vm.stopPrank();
-        
+
         // Vérification
         SimpleVotingSystem.Candidate memory c1 = votingSystem.getCandidate(1);
         assertEq(c1.fundsReceived, 5 ether);
@@ -73,10 +73,10 @@ contract SimpleVotingSystemTest is Test {
 
         // Seul le withdrawer peut retirer
         vm.prank(withdrawer);
-        uint balanceBefore = withdrawer.balance;
+        uint256 balanceBefore = withdrawer.balance;
         votingSystem.withdraw(); // Doit récupérer les 5 ETH du contrat
-        uint balanceAfter = withdrawer.balance;
-        
+        uint256 balanceAfter = withdrawer.balance;
+
         assertEq(balanceAfter - balanceBefore, 5 ether);
     }
 
