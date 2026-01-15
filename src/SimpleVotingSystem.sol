@@ -3,7 +3,6 @@ pragma solidity 0.8.26;
 
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {AccessControl} from "openzeppelin-contracts/contracts/access/AccessControl.sol";
-// Import du nouveau contrat NFT
 import {VoteNFT} from "./VoteNFT.sol";
 
 contract SimpleVotingSystem is Ownable, AccessControl {
@@ -28,7 +27,6 @@ contract SimpleVotingSystem is Ownable, AccessControl {
     WorkflowStatus public workflowStatus;
     uint public voteStartTime;
     
-    // Variable pour stocker le contrat NFT
     VoteNFT public voteNft;
 
     mapping(uint => Candidate) public candidates;
@@ -44,9 +42,6 @@ contract SimpleVotingSystem is Ownable, AccessControl {
     constructor() Ownable(msg.sender) {
         workflowStatus = WorkflowStatus.REGISTER_CANDIDATES;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-
-        // DÉPLOIEMENT AUTOMATIQUE DU NFT
-        // Le VotingSystem crée le contrat NFT et en devient le propriétaire
         voteNft = new VoteNFT(address(this));
     }
 
@@ -95,20 +90,39 @@ contract SimpleVotingSystem is Ownable, AccessControl {
     function vote(uint _candidateId) public {
         require(workflowStatus == WorkflowStatus.VOTE, "Voting session is not open");
         require(block.timestamp >= voteStartTime + 1 hours, "Voting starts 1 hour after session opening");
-        
-        // VÉRIFICATION VIA LE NFT (Consigne 7)
         require(voteNft.balanceOf(msg.sender) == 0, "You have already voted (NFT detected)");
-        
         require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
 
         voters[msg.sender] = true;
         candidates[_candidateId].voteCount += 1;
         
-        // DISTRIBUTION DU NFT AU VOTANT
         voteNft.mint(msg.sender);
         
         emit Voted(msg.sender, _candidateId);
     }
+
+    // --- NOUVELLE FONCTION: DESIGNER LE VAINQUEUR ---
+    function getWinner() public view returns (string memory winnerName, uint winnerVoteCount) {
+        require(workflowStatus == WorkflowStatus.COMPLETED, "Voting session not completed");
+        
+        uint winningId = 0;
+        uint maxVotes = 0;
+
+        for (uint i = 0; i < candidateIds.length; i++) {
+             uint currentId = candidateIds[i];
+             if (candidates[currentId].voteCount > maxVotes) {
+                 maxVotes = candidates[currentId].voteCount;
+                 winningId = currentId;
+             }
+        }
+        
+        if (winningId == 0) {
+            return ("No votes cast", 0);
+        }
+        
+        return (candidates[winningId].name, candidates[winningId].voteCount);
+    }
+    // ------------------------------------------------
 
     function getTotalVotes(uint _candidateId) public view returns (uint) {
         require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
