@@ -3,13 +3,14 @@ pragma solidity 0.8.26;
 
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {AccessControl} from "openzeppelin-contracts/contracts/access/AccessControl.sol";
+// Import du nouveau contrat NFT
+import {VoteNFT} from "./VoteNFT.sol";
 
 contract SimpleVotingSystem is Ownable, AccessControl {
-    // --- ROLES ---
+    
     bytes32 public constant FOUNDER_ROLE = keccak256("FOUNDER_ROLE");
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
 
-    // --- WORKFLOW ---
     enum WorkflowStatus {
         REGISTER_CANDIDATES,
         FOUND_CANDIDATES,
@@ -18,38 +19,41 @@ contract SimpleVotingSystem is Ownable, AccessControl {
     }
 
     struct Candidate {
-        uint256 id;
+        uint id;
         string name;
-        uint256 voteCount;
-        uint256 fundsReceived;
+        uint voteCount;
+        uint fundsReceived;
     }
 
     WorkflowStatus public workflowStatus;
-    uint256 public voteStartTime;
+    uint public voteStartTime;
+    
+    // Variable pour stocker le contrat NFT
+    VoteNFT public voteNft;
 
-    mapping(uint256 => Candidate) public candidates;
+    mapping(uint => Candidate) public candidates;
     mapping(address => bool) public voters;
-    uint256[] private candidateIds;
+    uint[] private candidateIds;
 
-    // --- EVENTS ---
     event WorkflowStatusChange(WorkflowStatus previousStatus, WorkflowStatus newStatus);
-    event CandidateRegistered(uint256 id, string name);
-    event Voted(address voter, uint256 candidateId);
-    event FundReceived(address founder, uint256 candidateId, uint256 amount);
-    event FundsWithdrawn(address withdrawer, uint256 amount);
+    event CandidateRegistered(uint id, string name);
+    event Voted(address voter, uint candidateId);
+    event FundReceived(address founder, uint candidateId, uint amount);
+    event FundsWithdrawn(address withdrawer, uint amount);
 
     constructor() Ownable(msg.sender) {
         workflowStatus = WorkflowStatus.REGISTER_CANDIDATES;
-        // On donne le rôle d'admin global au déployeur
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
 
-    // --- ADMINISTRATION DU WORKFLOW ---
+        // DÉPLOIEMENT AUTOMATIQUE DU NFT
+        // Le VotingSystem crée le contrat NFT et en devient le propriétaire
+        voteNft = new VoteNFT(address(this));
+    }
 
     function setWorkflowStatus(WorkflowStatus _newStatus) public onlyOwner {
         WorkflowStatus previousStatus = workflowStatus;
         workflowStatus = _newStatus;
-
+        
         if (_newStatus == WorkflowStatus.VOTE) {
             voteStartTime = block.timestamp;
         }
@@ -57,22 +61,18 @@ contract SimpleVotingSystem is Ownable, AccessControl {
         emit WorkflowStatusChange(previousStatus, _newStatus);
     }
 
-    // --- GESTION DES CANDIDATS ---
-
     function addCandidate(string memory _name) public onlyOwner {
         require(workflowStatus == WorkflowStatus.REGISTER_CANDIDATES, "Candidates registration is not open");
         require(bytes(_name).length > 0, "Candidate name cannot be empty");
 
-        uint256 candidateId = candidateIds.length + 1;
+        uint candidateId = candidateIds.length + 1;
         candidates[candidateId] = Candidate(candidateId, _name, 0, 0);
         candidateIds.push(candidateId);
-
+        
         emit CandidateRegistered(candidateId, _name);
     }
 
-    // --- FONCTIONNALITÉS FINANCIÈRES (FOUNDER & WITHDRAWER) ---
-
-    function fundCandidate(uint256 _candidateId) public payable onlyRole(FOUNDER_ROLE) {
+    function fundCandidate(uint _candidateId) public payable onlyRole(FOUNDER_ROLE) {
         require(workflowStatus != WorkflowStatus.COMPLETED, "Workflow is completed");
         require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
         require(msg.value > 0, "Amount must be greater than 0");
@@ -83,43 +83,44 @@ contract SimpleVotingSystem is Ownable, AccessControl {
 
     function withdraw() public onlyRole(WITHDRAWER_ROLE) {
         require(workflowStatus == WorkflowStatus.COMPLETED, "Workflow is not completed yet");
-        uint256 balance = address(this).balance;
+        uint balance = address(this).balance;
         require(balance > 0, "No funds to withdraw");
 
-        (bool sent,) = payable(msg.sender).call{value: balance}("");
+        (bool sent, ) = payable(msg.sender).call{value: balance}("");
         require(sent, "Failed to send Ether");
 
         emit FundsWithdrawn(msg.sender, balance);
     }
 
-    // --- VOTE ---
-
-    function vote(uint256 _candidateId) public {
+    function vote(uint _candidateId) public {
         require(workflowStatus == WorkflowStatus.VOTE, "Voting session is not open");
         require(block.timestamp >= voteStartTime + 1 hours, "Voting starts 1 hour after session opening");
-        require(!voters[msg.sender], "You have already voted");
+        
+        // VÉRIFICATION VIA LE NFT (Consigne 7)
+        require(voteNft.balanceOf(msg.sender) == 0, "You have already voted (NFT detected)");
+        
         require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
 
         voters[msg.sender] = true;
         candidates[_candidateId].voteCount += 1;
-
+        
+        // DISTRIBUTION DU NFT AU VOTANT
+        voteNft.mint(msg.sender);
+        
         emit Voted(msg.sender, _candidateId);
     }
 
-    // --- VIEW FUNCTIONS ---
-
-    function getTotalVotes(uint256 _candidateId) public view returns (uint256) {
+    function getTotalVotes(uint _candidateId) public view returns (uint) {
         require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
         return candidates[_candidateId].voteCount;
     }
 
-    function getCandidatesCount() public view returns (uint256) {
+    function getCandidatesCount() public view returns (uint) {
         return candidateIds.length;
     }
 
-    function getCandidate(uint256 _candidateId) public view returns (Candidate memory) {
+    function getCandidate(uint _candidateId) public view returns (Candidate memory) {
         require(_candidateId > 0 && _candidateId <= candidateIds.length, "Invalid candidate ID");
         return candidates[_candidateId];
     }
 }
-
