@@ -122,3 +122,4 @@ contract SimpleVotingSystem is Ownable, AccessControl {
         return candidates[_candidateId];
     }
 }
+
