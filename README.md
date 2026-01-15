@@ -1,66 +1,34 @@
-## Foundry
+# Système de Vote Décentralisé (Evaluation Finale)
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Ce projet est une DApp de vote complète réalisée avec **Foundry** et **Solidity**.
+Il inclut un système de workflow (Enregistrement, Vote, Fin), une gestion des rôles (Admin, Founder, Withdrawer) et la distribution automatique de **NFTs ("Voter Pass")** aux participants.
 
-Foundry consists of:
+## 🔗 Déploiement sur Sepolia (Testnet)
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Le projet est déployé et vérifié sur le réseau Sepolia.
 
-## Documentation
+- **Voting Smart Contract** : [`0xC95088799f10616FeBbfc78491FC32fFf3f6524D`](https://sepolia.etherscan.io/address/0xC95088799f10616FeBbfc78491FC32fFf3f6524D)
+- **NFT Contract (Voter Pass)** : [`0x7a53Bae20AE13D30be19E5fB5f2F3d916E08Ec58`](https://sepolia.etherscan.io/address/0x7a53Bae20AE13D30be19E5fB5f2F3d916E08Ec58)
+- **Transaction de Déploiement** : [`0xa2be37e3cd2ebd85d0b6398852689fcafd7ad5167eeaa8e413b73a1d5fc9ded9`](https://sepolia.etherscan.io/tx/0xa2be37e3cd2ebd85d0b6398852689fcafd7ad5167eeaa8e413b73a1d5fc9ded9)
 
-https://book.getfoundry.sh/
+## 🛠 Fonctionnalités
 
-## Usage
+1. **Workflow Sécurisé** : 4 statuts (Register, Found, Vote, Completed).
+2. **Rôles** :
+   - `Admin` : Gère le workflow.
+   - `Founder` : Finance les candidats.
+   - `Withdrawer` : Récupère les fonds à la fin.
+3. **Timer de Sécurité** : Le vote ne s'ouvre qu'1h après le lancement de la session.
+4. **NFT Voting** : Chaque votant reçoit un NFT unique qui empêche le double vote.
+5. **Vainqueur** : Fonction pour désigner le gagnant automatiquement.
 
-### Build
+## 🧪 Tests
 
-```shell
-$ forge build
-```
+Les tests ont été réalisés avec Foundry :
+- Scénario complet (Nominal).
+- Tests de sécurité (Permissions, Timer).
+- Tests NFT.
 
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+Commande pour lancer les tests :
+```bash
+forge test

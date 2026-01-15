@@ -6,15 +6,16 @@ import {SimpleVotingSystem} from "../src/SimpleVotingSystem.sol";
 
 contract DeploySimpleVotingSystem is Script {
     function run() external {
-        // Récupération de la clé privée depuis le fichier .env
+        // 1. Récupérer la clé privée
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-        // Début de la transaction (tout ce qui suit est envoyé on-chain)
+        // 2. DÉMARRER la transaction (C'est cette ligne qui manquait !)
         vm.startBroadcast(deployerPrivateKey);
 
-        // Déploiement du contrat
-        SimpleVotingSystem votingSystem = new SimpleVotingSystem();
+        // 3. Déployer le contrat
+        new SimpleVotingSystem();
 
+        // 4. ARRÊTER la transaction
         vm.stopBroadcast();
     }
 }
